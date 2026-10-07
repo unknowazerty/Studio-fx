@@ -89,6 +89,39 @@ select { background: var(--deck-2); border: 1px solid var(--line); border-radius
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--deck-2); border: 1px solid var(--line); padding: 10px 14px; border-radius: 8px; max-width: calc(100vw - 32px); z-index: 5; }
 .toast.err { border-color: var(--rec); }
 
+
+/* ── Onglets + Remplacement IA ── */
+*, *::before, *::after { box-sizing: border-box; }
+#repScreen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; max-width: none; max-height: none; border-radius: 10px; }
+.note + .field { margin-top: 12px; }
+.tabs { display: flex; gap: 4px; background: var(--deck); border: 1px solid var(--line); border-radius: 9px; padding: 3px; }
+.tab { background: none; border: 0; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
+.tab[aria-pressed="true"] { background: var(--line); color: var(--text); }
+.top p { flex: 1 1 260px; }
+.drop video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .5; }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 9px; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--amber); background: var(--deck-2); }
+.choice input { accent-color: var(--amber); margin-top: 3px; }
+.choice small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.consent { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); margin-bottom: 12px; cursor: pointer; }
+.consent input { accent-color: var(--amber); margin-top: 2px; }
+.empty, .busy { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; padding: 24px; color: var(--muted); }
+.empty strong, .busy strong { color: var(--text); font: 800 18px var(--f-display); }
+.busy { background: rgba(6,7,9,.82); }
+.busy .bar { width: min(280px, 70%); margin: 4px 0 0; }
+.busy .bar i { background: var(--amber); transition: width .4s; }
+.elapsed { font: 500 12px var(--f-mono); font-variant-numeric: tabular-nums; }
+.ring { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--amber); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ring { animation-duration: 3s; } }
+.field input:not([type=range]) { background: var(--deck-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.field small, .muted { color: var(--muted); font-weight: 400; }
+.adv { margin-top: 12px; }
+.adv summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.debug { font: 11px/1.45 var(--f-mono); color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; margin: 10px 0 0; }
+a.ghost { color: var(--amber); text-decoration: none; font: 600 12px var(--f-body); cursor: pointer; }
+
 @media (max-width: 1080px) {
   html, body { height: auto; }
   .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -106,10 +139,14 @@ select { background: var(--deck-2); border: 1px solid var(--line); border-radius
 
 <header class="top">
   <div class="brand"><i aria-hidden="true"></i>Studio FX</div>
-  <p>Effets caméra et VFX sur vos photos. Tout est calculé dans votre navigateur : gratuit, sans compte, rien n'est envoyé.</p>
+  <nav class="tabs" aria-label="Outils">
+    <button class="tab" data-view="effects" aria-pressed="true">Effets</button>
+    <button class="tab" data-view="replace" aria-pressed="false">Remplacement IA</button>
+  </nav>
+  <p id="topNote">Effets caméra et VFX sur vos photos. Tout est calculé dans votre navigateur : gratuit, sans compte, rien n'est envoyé.</p>
 </header>
 
-<main class="layout">
+<main class="layout" id="view-effects">
   <section class="panel">
     <div class="block">
       <h2>Photo</h2>
@@ -165,6 +202,84 @@ select { background: var(--deck-2); border: 1px solid var(--line); border-radius
       <button id="export" class="primary"><span>●</span> Enregistrer la vidéo</button>
       <div class="bar" id="bar" hidden><i></i></div>
       <p class="note" id="exportNote">L'enregistrement se fait en temps réel : comptez la durée du clip. Format MP4 si votre navigateur le permet, sinon WebM.</p>
+    </div>
+  </section>
+</main>
+
+<main class="layout replace" id="view-replace" hidden>
+  <section class="panel">
+    <div class="block">
+      <h2>Vidéo source <b id="vidInfo"></b></h2>
+      <label class="drop" id="vidDrop">
+        <input id="vidFile" type="file" accept="video/*" hidden>
+        <span id="vidText"><strong>Déposez une vidéo</strong><br><small>une personne bien visible · 3 à 10 s conseillé</small></span>
+      </label>
+    </div>
+    <div class="block">
+      <h2>Personnage <b id="charInfo"></b></h2>
+      <label class="drop" id="charDrop">
+        <input id="charFile" type="file" accept="image/*" hidden>
+        <img id="charThumb" alt="" hidden>
+        <span id="charText"><strong>Déposez la photo du personnage</strong><br><small>en pied ou buste, de face, fond simple</small></span>
+      </label>
+    </div>
+    <div class="block">
+      <h2>Mode</h2>
+      <div class="choices" role="radiogroup">
+        <label class="choice"><input type="radio" name="mode" value="replace" checked>
+          <span><strong>Remplacer la personne</strong><small>Le décor, la caméra et les mouvements de la vidéo sont gardés ; seule la personne devient votre personnage.</small></span></label>
+        <label class="choice"><input type="radio" name="mode" value="animate">
+          <span><strong>Animer le personnage</strong><small>Votre personnage, dans son propre décor, reproduit les gestes et expressions de la vidéo.</small></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel stage">
+    <div class="stage-head">
+      <div class="combo" id="repTitle">Remplacement de personnage<small>Wan 2.2 Animate · open source</small></div>
+    </div>
+    <div class="screen" id="repScreen">
+      <video id="srcVideo" playsinline muted loop controls hidden></video>
+      <video id="outVideo" playsinline loop controls hidden></video>
+      <div class="empty" id="repEmpty">
+        <strong>Ajoutez une vidéo et une photo</strong>
+        <span>Le résultat apparaîtra ici. Une génération prend en général 2 à 10 minutes selon la file d'attente.</span>
+      </div>
+      <div class="busy" id="repBusy" hidden>
+        <div class="ring" aria-hidden="true"></div>
+        <strong id="repStage">Connexion au modèle…</strong>
+        <span id="repDetail"></span>
+        <div class="bar"><i id="repBar"></i></div>
+        <span class="elapsed" id="repElapsed">00:00</span>
+        <button id="repCancel" class="ghost">Annuler</button>
+      </div>
+    </div>
+    <div class="tc">
+      <span id="repStatus">Prêt</span>
+      <a id="repDownload" class="ghost" hidden>Télécharger la vidéo</a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="block">
+      <h2>Lancer</h2>
+      <label class="consent"><input id="consent" type="checkbox">
+        <span>J'ai le droit d'utiliser cette vidéo et cette photo : les personnes visibles sont d'accord, ou le personnage est le mien.</span></label>
+      <button id="repGo" class="primary" disabled>Générer</button>
+      <p class="note" id="repHint">Ajoutez une vidéo et une photo pour commencer.</p>
+    </div>
+    <div class="block">
+      <h2>Quota gratuit</h2>
+      <p class="note">Le modèle tourne gratuitement sur Hugging Face, avec un quota quotidien. Sans compte, il est vite atteint. Avec un compte gratuit, collez un jeton (Settings → Access Tokens → « Read ») pour profiter de votre propre quota.</p>
+      <label class="field"><span>Jeton Hugging Face <small class="muted">facultatif</small></span>
+        <input id="hfToken" type="password" placeholder="hf_…" autocomplete="off"></label>
+      <details class="adv">
+        <summary>Réglages avancés</summary>
+        <label class="field"><span>Space Hugging Face</span>
+          <input id="spaceId" placeholder="Wan-AI/Wan2.2-Animate"></label>
+        <p class="note">Si ce Space est indisponible, vous pouvez indiquer une copie publique (par exemple un « duplicate » du Space officiel).</p>
+        <pre id="repDebug" class="debug">Pas encore connecté.</pre>
+      </details>
     </div>
   </section>
 </main>
@@ -748,5 +863,6 @@ redrawThumbs();
 restartPreview();
 document.fonts?.ready.then(redrawThumbs);
 </script>
+<script type="module" src="replace.js"></script>
 </body>
 </html>
