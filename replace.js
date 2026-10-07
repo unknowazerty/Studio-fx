@@ -2,7 +2,13 @@
 // avec le modèle open source Wan 2.2 Animate hébergé gratuitement sur Hugging Face (Gradio).
 // Les paramètres du Space sont détectés à la connexion (view_api), pour suivre ses évolutions.
 
-const DEFAULT_SPACE = "Wan-AI/Wan2.2-Animate";
+// Le Space officiel (Wan-AI/Wan2.2-Animate) a été mis en pause : on essaie des copies publiques, dans l'ordre.
+const SPACES = [
+  "alexnasa/Wan2.2-Animate-ZEROGPU",
+  "Wan-AI/Wan2.2-Animate",
+  "IA7Cast/Wan2.2-Animate",
+  "ziffir/Wan2.2-Animate",
+];
 const q = (s) => document.querySelector(s);
 
 const store = {
@@ -164,18 +170,20 @@ function busy(on) {
 }
 const stage = (title, detail = "") => { q("#repStage").textContent = title; q("#repDetail").textContent = detail; q("#repStatus").textContent = title; };
 
-function explain(err) {
+function explain(err, hasToken) {
   const m = String(err?.message ?? err ?? "");
   if (/quota|exceeded|ZeroGPU|GPU.*(limit|time)/i.test(m)) return "Quota gratuit atteint. Ajoutez un jeton Hugging Face (compte gratuit) ou réessayez plus tard.";
-  if (/401|403|unauthor|token/i.test(m)) return "Jeton Hugging Face refusé. Vérifiez qu'il commence par hf_ et qu'il a le droit « Read ».";
-  if (/sleep|paused|building|not.?found|404/i.test(m)) return "Le Space est indisponible (en pause ou introuvable). Réessayez plus tard ou indiquez un autre Space dans les réglages avancés.";
+  if (hasToken && /Invalid credentials/i.test(m)) return "Jeton Hugging Face refusé. Vérifiez qu'il commence par hf_ et qu'il a le droit « Read ».";
+  if (/aucun Space/i.test(m)) return m;
+  if (/sleep|paused|building|not.?found|404|401|Login credentials|Not authorized/i.test(m)) return "Le Space est indisponible (en pause ou introuvable). Réessayez plus tard ou indiquez un autre Space dans les réglages avancés.";
   if (/fetch|network|Failed to|metadata|could not be (loaded|resolved)|connect/i.test(m)) return "Connexion impossible au Space. Vérifiez votre connexion internet, puis réessayez.";
   return "La génération a échoué : " + (m.replace(/[.\s]+$/, "") || "erreur inconnue") + ".";
 }
 
 q("#repGo").addEventListener("click", async () => {
   const mode = document.querySelector('input[name="mode"]:checked').value;
-  const space = q("#spaceId").value.trim() || DEFAULT_SPACE;
+  const custom = q("#spaceId").value.trim();
+  const candidates = custom ? [custom, ...SPACES.filter((x) => x !== custom)] : SPACES;
   const token = q("#hfToken").value.trim();
   if (token && !token.startsWith("hf_")) return toast("Le jeton Hugging Face doit commencer par hf_.", true);
 
@@ -183,17 +191,32 @@ q("#repGo").addEventListener("click", async () => {
   refresh();
   busy(true);
   q("#repDownload").hidden = true;
-  stage("Connexion au modèle…", space);
+  debug("");
 
   try {
     const { Client, handle_file } = await import("./vendor/gradio-client/browser.js");
-    const client = await Client.connect(space, {
-      ...(token ? { token } : {}),
-      status_callback: (s) => { if (s.status && s.status !== "running") stage("Démarrage du Space…", s.message || s.detail || ""); },
-    });
-    const api = await client.view_api();
-    const plan = planCall(api, mode, { photo: rep.photo, video: rep.video }, handle_file);
-    debug(`Space : ${space}\nEndpoint : ${plan.endpoint}\n` + plan.notes.join("\n"));
+    // Premier Space joignable dont l'API accepte une image et une vidéo.
+    let client = null, plan = null, space = null;
+    for (const id of candidates) {
+      if (rep.job.cancelled) throw new Error("Annulé");
+      stage("Connexion au modèle…", id);
+      try {
+        const c = await Client.connect(id, {
+          ...(token ? { token } : {}),
+          status_callback: (st) => { if (st.status && st.status !== "running") stage("Démarrage du Space…", st.message || st.detail || id); },
+        });
+        plan = planCall(await c.view_api(), mode, { photo: rep.photo, video: rep.video }, handle_file);
+        client = c; space = id;
+        break;
+      } catch (e) {
+        q("#repDebug").textContent += `${id} : indisponible (${e?.message ?? e})\n`;
+        if (token && /Invalid credentials/i.test(String(e?.message))) throw e;
+      }
+    }
+    if (!client) throw new Error("Aucun Space Wan Animate n'est disponible pour le moment. Réessayez plus tard, ou indiquez un autre Space dans les réglages avancés.");
+    q("#repDebug").textContent += `\nSpace utilisé : ${space}\nEndpoint : ${plan.endpoint}\n` + plan.notes.join("\n");
+    q("#repTitle").firstChild.textContent = "Remplacement de personnage";
+    q("#repTitle small").textContent = `Wan 2.2 Animate · ${space}`;
     if (rep.job.cancelled) throw new Error("Annulé");
 
     stage("Envoi de la vidéo et de la photo…");
@@ -234,7 +257,7 @@ q("#repGo").addEventListener("click", async () => {
     toast("Vidéo prête.");
   } catch (e) {
     if (String(e?.message) === "Annulé") { stage("Annulé"); showSource(); }
-    else { const msg = explain(e); stage("Échec"); toast(msg, true); q("#repDebug").textContent += `\n\nErreur : ${e?.message ?? e}`; }
+    else { const msg = explain(e, !!token); stage("Échec"); toast(msg, true); q("#repDebug").textContent += `\n\nErreur : ${e?.message ?? e}`; }
   } finally {
     busy(false);
     rep.job = null;
