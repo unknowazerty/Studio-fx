@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Studio FX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Salle de montage : fond graphite bleuté, accent ambre tungstène, timecode en mono. Thème sombre assumé. */
+:root {
+  --bg: #0e1014;
+  --deck: #161a21;
+  --deck-2: #1e232c;
+  --line: #2b313c;
+  --text: #eceef2;
+  --muted: #8b93a3;
+  --amber: #ffad42;
+  --amber-ink: #1f1405;
+  --rec: #ff4d4d;
+  --f-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 14px/1.45 var(--f-body);
+  display: flex; flex-direction: column;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.top { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { font: 800 19px/1 var(--f-display); letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); box-shadow: 0 0 10px var(--rec); }
+.top p { margin: 0; color: var(--muted); font-size: 12px; min-width: 0; }
+
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr) minmax(0, 300px); gap: 12px; padding: 12px 16px; }
+.panel { background: var(--deck); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; min-height: 0; min-width: 0; }
+h2 { font: 600 11px/1 var(--f-body); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+h2 b { color: var(--amber); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.block + .block { margin-top: 18px; }
+
+.drop { display: grid; place-items: center; text-align: center; min-height: 92px; border: 1.5px dashed var(--line); border-radius: 10px; cursor: pointer; position: relative; overflow: hidden; color: var(--muted); padding: 10px; }
+.drop:hover, .drop.over { border-color: var(--amber); }
+.drop strong { color: var(--text); }
+.drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.drop span { position: relative; }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.card { position: relative; aspect-ratio: 4/5; border-radius: 8px; overflow: hidden; border: 2px solid transparent; cursor: pointer; background: var(--deck-2); padding: 0; }
+.card canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.card .label { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 5px 5px; background: linear-gradient(transparent, rgba(0,0,0,.85)); font-size: 11px; font-weight: 600; text-align: left; line-height: 1.2; color: #fff; }
+.card.none { display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.card[aria-pressed="true"] { border-color: var(--amber); }
+.card:hover { border-color: var(--line); }
+.card[aria-pressed="true"]:hover { border-color: var(--amber); }
+
+.stage { display: flex; flex-direction: column; gap: 10px; }
+.stage-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.combo { font: 800 clamp(18px, 2.2vw, 24px)/1.1 var(--f-display); text-wrap: balance; min-width: 0; }
+.combo small { display: block; font: 500 12px var(--f-body); color: var(--muted); margin-top: 4px; }
+.seg { display: inline-flex; background: var(--deck-2); border-radius: 8px; padding: 3px; border: 1px solid var(--line); }
+.seg button { background: none; border: 0; padding: 5px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 12px; }
+.seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
+.screen { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; background: #060709; border-radius: 10px; overflow: hidden; }
+.screen canvas, .screen video { display: block; border-radius: 4px; max-width: 100%; max-height: 100%; }
+.tc { display: flex; justify-content: space-between; align-items: center; gap: 10px; font: 500 12px var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.tc .rec { color: var(--rec); }
+.tc button { font-family: var(--f-body); }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field + .field { margin-top: 14px; }
+.field > span { display: flex; justify-content: space-between; font-weight: 600; font-size: 13px; }
+.field b { font: 500 12px var(--f-mono); color: var(--amber); }
+input[type=range] { accent-color: var(--amber); width: 100%; }
+select { background: var(--deck-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.primary, .ghost { border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 600; border: 1px solid transparent; }
+.primary { background: var(--amber); color: var(--amber-ink); width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.primary:disabled { opacity: .55; cursor: progress; }
+.ghost { background: transparent; border-color: var(--line); padding: 5px 10px; font-size: 12px; }
+.bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--rec); }
+.note { color: var(--muted); font-size: 12px; margin: 10px 0 0; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--deck-2); border: 1px solid var(--line); padding: 10px 14px; border-radius: 8px; max-width: calc(100vw - 32px); z-index: 5; }
+.toast.err { border-color: var(--rec); }
+
+@media (max-width: 1080px) {
+  html, body { height: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stage { grid-column: 1 / -1; order: -1; height: 72vh; }
+  .panel { overflow: visible; }
+}
+@media (max-width: 640px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 68vh; }
+}
+@media (prefers-reduced-motion: reduce) { .brand i { box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><i aria-hidden="true"></i>Studio FX</div>
+  <p>Effets caméra et VFX sur vos photos. Tout est calculé dans votre navigateur : gratuit, sans compte, rien n'est envoyé.</p>
+</header>
+
+<main class="layout">
+  <section class="panel">
+    <div class="block">
+      <h2>Photo</h2>
+      <label class="drop" id="drop">
+        <input id="file" type="file" accept="image/*" hidden>
+        <img id="thumb" alt="" hidden>
+        <span id="dropText"><strong>Déposez une photo</strong><br><small>ou cliquez · vous pouvez aussi la coller</small></span>
+      </label>
+    </div>
+    <div class="block">
+      <h2>Mouvement de caméra <b id="moveName"></b></h2>
+      <div class="grid" id="moves"></div>
+    </div>
+    <div class="block">
+      <h2>Effet visuel <b id="fxName"></b></h2>
+      <div class="grid" id="fxs"></div>
+    </div>
+  </section>
+
+  <section class="panel stage">
+    <div class="stage-head">
+      <div class="combo" id="combo">—</div>
+      <div class="seg" id="aspect" role="group" aria-label="Format">
+        <button data-ar="9:16">9:16</button><button data-ar="1:1">1:1</button><button data-ar="16:9">16:9</button>
+      </div>
+    </div>
+    <div class="screen" id="screen">
+      <canvas id="preview"></canvas>
+      <video id="result" playsinline controls loop muted hidden></video>
+    </div>
+    <div class="tc">
+      <span id="tc">00:00:00:00</span>
+      <button id="back" class="ghost" hidden>Revenir à l'aperçu</button>
+      <span id="fmt">720 × 1280 · 30 i/s</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="block">
+      <h2>Réglages</h2>
+      <label class="field"><span>Intensité <b id="kVal">70 %</b></span>
+        <input id="k" type="range" min="0" max="100" value="70"></label>
+      <label class="field"><span>Durée <b id="durVal">5 s</b></span>
+        <input id="dur" type="range" min="2" max="12" value="5"></label>
+      <label class="field"><span>Qualité d'export</span>
+        <select id="quality">
+          <option value="1">Haute (720p / 1080p carré)</option>
+          <option value="0.75">Moyenne, plus rapide</option>
+        </select></label>
+    </div>
+    <div class="block">
+      <h2>Export</h2>
+      <button id="export" class="primary"><span>●</span> Enregistrer la vidéo</button>
+      <div class="bar" id="bar" hidden><i></i></div>
+      <p class="note" id="exportNote">L'enregistrement se fait en temps réel : comptez la durée du clip. Format MP4 si votre navigateur le permet, sinon WebM.</p>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+"use strict";
+/* ───────────── Outils ───────────── */
+const $ = (s) => document.querySelector(s);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const win = (t, a, b) => clamp01((t - a) / (b - a));
+const ease = {
+  inOut: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  out: (t) => 1 - Math.pow(1 - t, 3),
+  in: (t) => t * t * t,
+  expoIn: (t) => (t <= 0 ? 0 : Math.pow(2, 10 * t - 10)),
+  expoOut: (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+};
+// Aléatoire déterministe : le même indice donne toujours la même valeur (rendu sans état, en boucle).
+const R = (i, s = 0) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
+const noise = (t, s) => Math.sin(t * 13.1 + s) * 0.5 + Math.sin(t * 27.7 + s * 2.3) * 0.3 + Math.sin(t * 51.3 + s * 4.1) * 0.2;
+const pose = (p = {}) => ({ s: 1, x: 0, y: 0, r: 0, blur: 0, rgb: 0, flash: 0, mb: 0, glitch: 0, vignette: 0.3, ...p });
+
+function sprite(stops, size = 128) {
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const g = c.getContext("2d"); const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, size, size); return c;
+}
+const SPR = {
+  flame: sprite([[0, "rgba(255,240,190,1)"], [0.25, "rgba(255,170,50,.9)"], [0.6, "rgba(230,60,10,.45)"], [1, "rgba(120,0,0,0)"]]),
+  ember: sprite([[0, "rgba(255,230,160,1)"], [0.4, "rgba(255,120,30,.6)"], [1, "rgba(255,60,0,0)"]], 32),
+  smoke: sprite([[0, "rgba(60,55,55,.55)"], [1, "rgba(40,40,40,0)"]]),
+  warm: sprite([[0, "rgba(255,210,150,.9)"], [0.5, "rgba(255,150,90,.35)"], [1, "rgba(255,120,60,0)"]], 64),
+  glow: sprite([[0, "rgba(255,255,255,1)"], [0.3, "rgba(255,240,210,.5)"], [1, "rgba(255,220,180,0)"]], 64),
+};
+const grainTile = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 192;
+  const g = c.getContext("2d"); const d = g.createImageData(192, 192);
+  for (let i = 0; i < d.data.length; i += 4) { const v = R(i, 9) * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0); return c;
+})();
+
+/* ───────────── Mouvements de caméra ───────────── */
+const MOVES = [
+  { id: "fixe", name: "Fixe", pose: () => pose({ s: 1.02 }) },
+  { id: "crash-in", name: "Crash Zoom In", pose: (t, k) => {
+      const z = ease.expoIn(win(t, 0.15, 0.55)), h = win(t, 0.55, 1);
+      return pose({ s: 1 + (0.6 + 1.6 * k) * z, x: 0.004 * k * noise(t * 3, 1) * h, y: 0.004 * k * noise(t * 3, 2) * h, mb: z > 0 && z < 1 ? 0.9 * k : 0, vignette: 0.3 + 0.3 * z });
+  } },
+  { id: "crash-out", name: "Crash Zoom Out", pose: (t, k) => { const z = ease.expoOut(win(t, 0.2, 0.6)); return pose({ s: 1 + (0.6 + 1.6 * k) * (1 - z), mb: z > 0 && z < 0.95 ? 0.9 * k : 0 }); } },
+  { id: "dolly-in", name: "Dolly In", pose: (t, k) => pose({ s: 1 + (0.15 + 0.45 * k) * ease.inOut(t) }) },
+  { id: "dolly-out", name: "Dolly Out", pose: (t, k) => pose({ s: 1 + (0.15 + 0.45 * k) * (1 - ease.inOut(t)) }) },
+  { id: "super-dolly", name: "Super Dolly", pose: (t, k) => { const e = ease.inOut(t); return pose({ s: 1.05 + (0.4 + 0.9 * k) * e, y: -0.03 * e, mb: 0.25 * k * Math.sin(Math.PI * t) }); } },
+  { id: "pan-l", name: "Pan gauche", pose: (t, k) => pose({ s: 1.25 + 0.2 * k, x: (0.08 + 0.1 * k) * (0.5 - ease.inOut(t)) * 2 }) },
+  { id: "pan-r", name: "Pan droite", pose: (t, k) => pose({ s: 1.25 + 0.2 * k, x: (0.08 + 0.1 * k) * (ease.inOut(t) - 0.5) * 2 }) },
+  { id: "tilt-up", name: "Tilt Up", pose: (t, k) => pose({ s: 1.25 + 0.2 * k, y: (0.08 + 0.1 * k) * (0.5 - ease.inOut(t)) * 2 }) },
+  { id: "tilt-down", name: "Tilt Down", pose: (t, k) => pose({ s: 1.25 + 0.2 * k, y: (0.08 + 0.1 * k) * (ease.inOut(t) - 0.5) * 2 }) },
+  { id: "whip", name: "Whip Pan", pose: (t, k) => {
+      const w = win(t, 0.35, 0.65), sw = Math.sin(Math.PI * w), on = w > 0 && w < 1 ? 1 : 0;
+      return pose({ s: 1.35 + 0.2 * k, x: (0.12 + 0.12 * k) * sw * (w < 0.5 ? 1 : -1) * on, mb: sw * (0.6 + 0.6 * k), blur: sw * 3 * k });
+  } },
+  { id: "crane", name: "Crane Up", pose: (t, k) => { const e = ease.inOut(t); return pose({ s: 1.35 + 0.15 * k - 0.2 * e, y: (0.06 + 0.08 * k) * (e - 0.5) * 2 }); } },
+  { id: "spiral", name: "Zoom spirale", pose: (t, k) => { const e = ease.inOut(t); return pose({ s: 1.2 + (0.4 + 0.8 * k) * e, r: (0.4 + 1.2 * k) * e, mb: 0.3 * k * Math.sin(Math.PI * t) }); } },
+  { id: "handheld", name: "Caméra épaule", pose: (t, k) => pose({ s: 1.12 + 0.05 * k, x: 0.012 * k * noise(t * 2, 1), y: 0.01 * k * noise(t * 2, 7), r: 0.012 * k * noise(t * 2, 3) }) },
+  { id: "quake", name: "Séisme", pose: (t, k) => {
+      const a = 0.4 + 0.6 * Math.sin(Math.PI * t);
+      return pose({ s: 1.15 + 0.08 * k, x: 0.025 * k * a * noise(t * 8, 1), y: 0.03 * k * a * noise(t * 8, 5), r: 0.02 * k * a * noise(t * 8, 9), mb: 0.3 * k * a });
+  } },
+  { id: "beat", name: "Beat Punch", pose: (t, k) => { const h = Math.exp(-((t * 4) % 1) * 9); return pose({ s: 1.05 + (0.08 + 0.15 * k) * h, flash: 0.3 * k * h, rgb: 6 * k * h }); } },
+  { id: "rack", name: "Rack Focus", pose: (t, k) => pose({ s: 1.05 + 0.05 * ease.inOut(t), blur: (6 + 10 * k) * (1 - ease.out(win(t, 0.1, 0.7))) }) },
+  { id: "kenburns", name: "Ken Burns", pose: (t, k) => { const e = ease.inOut(t); return pose({ s: 1.1 + (0.1 + 0.2 * k) * e, x: -0.03 * k * e, y: -0.02 * k * e }); } },
+];
+
+/* ───────────── Effets visuels ─────────────
+   draw(ctx, base, W, H, t, k, eng) compose l'effet à partir de l'image filmée `base`.
+   pose(t, k) (facultatif) ajoute secousse, flash, aberration… au mouvement de caméra. */
+const FXS = [
+  { id: "none", name: "Aucun" },
+  { id: "disintegrate", name: "Désintégration", draw(ctx, base, W, H, t, k, eng) {
+      const cs = Math.max(3, Math.round(W / 140));
+      const src = eng.bctx.getImageData(0, 0, W, H).data;
+      const out = ctx.createImageData(W, H), o = out.data;
+      o.set(src);
+      const cols = Math.ceil(W / cs), rows = Math.ceil(H / cs), BG = [8, 9, 12];
+      const spread = 0.35 + 0.25 * k;
+      for (let cy = 0; cy < rows; cy++) for (let cx = 0; cx < cols; cx++) {
+        const i = cy * cols + cx;
+        const th = 0.08 + 0.5 * (cx / cols) + 0.08 * Math.sin(cy / rows * 9) + 0.28 * R(i, 1);
+        const a = (t - th) / 0.4;
+        if (a <= 0) continue;
+        const x0 = cx * cs, y0 = cy * cs;
+        const si = (Math.min(H - 1, y0 + (cs >> 1)) * W + Math.min(W - 1, x0 + (cs >> 1))) * 4;
+        const cr = src[si], cg = src[si + 1], cb = src[si + 2];
+        for (let y = y0; y < Math.min(H, y0 + cs); y++) for (let x = x0; x < Math.min(W, x0 + cs); x++) {
+          const p = (y * W + x) * 4; o[p] = BG[0]; o[p + 1] = BG[1]; o[p + 2] = BG[2];
+        }
+        if (a >= 1) continue;
+        const px = Math.round(x0 + a * W * spread * (0.4 + R(i, 2)) + Math.sin(a * 6 + i) * cs * 2);
+        const py = Math.round(y0 - a * H * 0.18 * (0.2 + R(i, 3)) + a * a * H * 0.05);
+        const sz = Math.max(1, Math.round(cs * (1 - a * 0.6))), al = (1 - a) * (1 - a);
+        for (let y = py; y < py + sz; y++) { if (y < 0 || y >= H) continue;
+          for (let x = px; x < px + sz; x++) { if (x < 0 || x >= W) continue;
+            const p = (y * W + x) * 4; o[p] += (cr - o[p]) * al; o[p + 1] += (cg - o[p + 1]) * al; o[p + 2] += (cb - o[p + 2]) * al; } }
+      }
+      ctx.putImageData(out, 0, 0);
+  } },
+  { id: "fire", name: "En feu", draw(ctx, base, W, H, t, k) {
+      const grow = ease.out(win(t, 0, 0.45));
+      ctx.drawImage(base, 0, 0);
+      for (let y = Math.floor(H * 0.35); y < H; y += 4) {   // brume de chaleur
+        const dx = Math.sin(y * 0.05 + t * 40) * W * 0.004 * k * grow;
+        ctx.drawImage(base, 0, y, W, 4, dx, y, W, 4);
+      }
+      ctx.globalCompositeOperation = "soft-light";
+      ctx.fillStyle = `rgba(255,110,20,${0.55 * grow})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter";
+      const n = Math.round(140 * (0.5 + k));
+      for (let i = 0; i < n; i++) {
+        const ph = (R(i) + t * 2.2 * (0.6 + R(i, 1))) % 1;
+        const x = W * (R(i, 2) * 1.2 - 0.1) + Math.sin(ph * 6 + i) * W * 0.03;
+        const y = H * (1.05 - ph * (0.3 + 0.45 * k) * grow);
+        const r = W * (0.1 + 0.1 * R(i, 3)) * (1 - ph * 0.7) * (0.4 + 0.6 * grow);
+        ctx.globalAlpha = (1 - ph) * 0.55;
+        ctx.drawImage(SPR.flame, x - r, y - r * 1.4, r * 2, r * 2.8);
+      }
+      for (let i = 0; i < 60; i++) {                         // braises
+        const ph = (R(i, 4) + t * (0.8 + R(i, 5))) % 1;
+        const x = W * R(i, 6) + Math.sin(ph * 9 + i) * W * 0.05, y = H * (1 - ph * 0.9 * grow - 0.02);
+        const r = W * 0.012 * (0.5 + R(i, 7));
+        ctx.globalAlpha = (1 - ph) * grow; ctx.drawImage(SPR.ember, x - r, y - r, r * 2, r * 2);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "explosion", name: "Explosion",
+    pose: (t, k) => { const u = t - 0.3; if (u < 0) return pose(); const d = Math.exp(-u * 6);
+      return pose({ x: 0.03 * k * d * noise(t * 10, 1), y: 0.03 * k * d * noise(t * 10, 4), r: 0.015 * k * d * noise(t * 10, 8), flash: u < 0.08 ? (1 - u / 0.08) * 0.9 : 0, mb: 0.4 * d }); },
+    draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      const u = (t - 0.3) / 0.7; if (u < 0) return;
+      const cx = W / 2, cy = H * 0.55, fb = ease.out(Math.min(1, u * 3));
+      ctx.globalCompositeOperation = "soft-light";
+      ctx.fillStyle = `rgba(255,120,30,${0.7 * (1 - u)})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      for (let i = 0; i < 26; i++) {                         // fumée
+        const a = R(i, 2) * Math.PI * 2, d = W * (0.15 + 0.55 * R(i, 3)) * ease.out(u);
+        const r = W * (0.18 + 0.25 * R(i, 4)) * (0.3 + u);
+        ctx.globalAlpha = 0.55 * Math.min(1, u * 3) * (1 - u * 0.6);
+        ctx.drawImage(SPR.smoke, cx + Math.cos(a) * d - r, cy + Math.sin(a) * d * 0.6 - r - u * H * 0.12, r * 2, r * 2);
+      }
+      ctx.globalCompositeOperation = "lighter";
+      const R0 = W * (0.25 + 0.9 * k) * fb;
+      ctx.globalAlpha = Math.pow(1 - u, 1.5); ctx.drawImage(SPR.flame, cx - R0, cy - R0, R0 * 2, R0 * 2);
+      for (let i = 0; i < 120; i++) {                        // étincelles et débris
+        const a = R(i) * Math.PI * 2, sp = W * (0.4 + 1.1 * R(i, 1)) * (0.6 + 0.6 * k);
+        const x = cx + Math.cos(a) * sp * ease.out(u), y = cy + Math.sin(a) * sp * ease.out(u) * 0.8 + u * u * H * 0.3;
+        const r = W * 0.012 * (0.5 + R(i, 5));
+        ctx.globalAlpha = 1 - u; ctx.drawImage(SPR.ember, x - r, y - r, r * 2, r * 2);
+      }
+      ctx.globalAlpha = 1 - u; ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = "rgba(255,240,220,.8)"; ctx.lineWidth = W * 0.02 * (1 - u);
+      ctx.beginPath(); ctx.arc(cx, cy, W * 1.6 * ease.out(Math.min(1, u * 1.5)), 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+  } },
+  { id: "melt", name: "Fonte", draw(ctx, base, W, H, t, k) {
+      ctx.fillStyle = "#08090c"; ctx.fillRect(0, 0, W, H);
+      const w = Math.max(2, Math.round(W / 240)), m = ease.in(win(t, 0.1, 1));
+      for (let x = 0; x < W; x += w) {
+        const n = 0.5 + 0.5 * noise(x / W * 2.2, 3); const off = H * (0.04 + 0.6 * k) * m * n * n;
+        ctx.drawImage(base, x, 0, w, H, x, off, w, H + off * 0.35);
+      }
+  } },
+  { id: "freeze", name: "Gel", draw(ctx, base, W, H, t, k) {
+      const g = ease.inOut(win(t, 0.05, 0.8));
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = `rgba(128,128,128,${0.75 * g})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = `rgba(160,205,255,${0.75 * g})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "screen"; ctx.fillStyle = `rgba(150,200,255,${0.18 * g})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * (0.6 - 0.35 * g * k), W / 2, H / 2, Math.hypot(W, H) / 2);
+      gr.addColorStop(0, "rgba(230,245,255,0)"); gr.addColorStop(1, `rgba(235,247,255,${0.7 * g})`);
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(240,250,255,.55)"; ctx.lineWidth = Math.max(1, W / 600);
+      ctx.beginPath();
+      const branch = (x, y, ang, len, depth, seed) => {
+        const L = len * g; const x2 = x + Math.cos(ang) * L, y2 = y + Math.sin(ang) * L;
+        ctx.moveTo(x, y); ctx.lineTo(x2, y2);
+        if (depth > 0) for (let j = 0; j < 2; j++) branch(x + (x2 - x) * (0.4 + 0.3 * j), y + (y2 - y) * (0.4 + 0.3 * j), ang + (j ? 0.7 : -0.7) * (0.6 + R(seed, j)), len * 0.5, depth - 1, seed * 3 + j);
+      };
+      for (let i = 0; i < 46; i++) {
+        const side = i % 4, p = R(i, 1);
+        const [x, y, a] = side === 0 ? [p * W, 0, Math.PI / 2] : side === 1 ? [W, p * H, Math.PI] : side === 2 ? [p * W, H, -Math.PI / 2] : [0, p * H, 0];
+        branch(x, y, a + (R(i, 2) - 0.5), Math.min(W, H) * (0.12 + 0.3 * k) * (0.5 + R(i, 3)), 3, i + 1);
+      }
+      ctx.stroke();
+  } },
+  { id: "lightning", name: "Éclairs",
+    pose: (t, k) => { let f = 0; for (const b of BOLTS) { const u = t - b; if (u >= 0 && u < 0.1) f = Math.max(f, (1 - u / 0.1) * 0.55 * k); } return pose({ flash: f, x: f * 0.01 * noise(t * 20, 2) }); },
+    draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "rgba(90,110,170,.55)"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter";
+      BOLTS.forEach((tb, bi) => {
+        const u = t - tb; if (u < 0 || u > 0.12) return;
+        const pts = [[W * (0.15 + 0.7 * R(bi, 1)), -10], [W * (0.25 + 0.5 * R(bi, 2)), H * (0.55 + 0.35 * R(bi, 3))]];
+        const path = [pts[0], pts[1]];
+        for (let d = 0, amp = W * 0.18; d < 7; d++, amp *= 0.55)
+          for (let i = path.length - 1; i > 0; i--) { const a = path[i - 1], b = path[i];
+            path.splice(i, 0, [(a[0] + b[0]) / 2 + (R(bi * 97 + d * 13 + i, 5) - 0.5) * amp, (a[1] + b[1]) / 2]); }
+        const al = 1 - u / 0.12;
+        for (const [lw, col] of [[W * 0.025, `rgba(120,170,255,${0.25 * al})`], [W * 0.009, `rgba(190,220,255,${0.7 * al})`], [W * 0.003, `rgba(255,255,255,${al})`]]) {
+          ctx.strokeStyle = col; ctx.lineWidth = lw * (0.6 + 0.6 * k); ctx.lineJoin = "round";
+          ctx.beginPath(); path.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+        }
+      });
+      ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "hologram", name: "Hologramme",
+    pose: (t, k) => { const g = R(Math.floor(t * 20), 3) > 0.85 ? 1 : 0; return pose({ rgb: 3 + 6 * k + 10 * g, glitch: g * 0.6 }); },
+    draw(ctx, base, W, H, t, k) {
+      ctx.fillStyle = "#03070c"; ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = R(Math.floor(t * 30), 1) > 0.9 ? 0.55 : 0.92; ctx.drawImage(base, 0, 0); ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = "#808080"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "color"; ctx.fillStyle = `rgba(70,200,255,${0.6 + 0.35 * k})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(0,0,0,.28)";
+      const st = Math.max(3, Math.round(H / 320));
+      for (let y = 0; y < H; y += st) ctx.fillRect(0, y, W, st / 2);
+      const by = ((t * 1.3) % 1) * H * 1.2 - H * 0.1, gr = ctx.createLinearGradient(0, by - H * 0.06, 0, by + H * 0.06);
+      gr.addColorStop(0, "rgba(120,230,255,0)"); gr.addColorStop(0.5, "rgba(140,235,255,.22)"); gr.addColorStop(1, "rgba(120,230,255,0)");
+      ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = gr; ctx.fillRect(0, by - H * 0.06, W, H * 0.12);
+      ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "rain", name: "Pluie", draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "rgba(110,125,150,.6)"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = "rgba(220,230,245,.35)"; ctx.lineWidth = Math.max(1, W / 700); ctx.beginPath();
+      const n = Math.round(500 * (0.3 + k));
+      for (let i = 0; i < n; i++) {
+        const sp = 2.5 + 2 * R(i, 2), y = (((R(i, 1) + t * sp) % 1.15) - 0.1) * H, x = W * (R(i) * 1.2 - 0.1) - y * 0.12, len = H * 0.035 * (0.5 + R(i, 3));
+        ctx.moveTo(x, y); ctx.lineTo(x + len * 0.12, y + len);
+      }
+      ctx.stroke();
+  } },
+  { id: "snow", name: "Neige", draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "screen"; ctx.fillStyle = "rgba(60,80,110,.25)"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.beginPath();
+      const n = Math.round(260 * (0.3 + k));
+      for (let i = 0; i < n; i++) {
+        const z = 0.4 + R(i, 3), y = (((R(i, 1) + t * 0.45 * z) % 1.1) - 0.05) * H, x = W * R(i) + Math.sin(t * 6 * z + i) * W * 0.02;
+        const r = W * 0.004 * z * z; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+  } },
+  { id: "leak", name: "Fuite de lumière", draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "screen";
+      [[255, 120, 40], [255, 60, 110], [255, 200, 90]].forEach(([r, g, b], i) => {
+        const x = W * (0.5 + 0.7 * Math.sin(t * Math.PI * 2 * (0.5 + i * 0.2) + i * 2)), y = H * (0.5 + 0.6 * Math.cos(t * Math.PI * 2 * 0.4 + i * 3));
+        const rad = Math.max(W, H) * (0.4 + 0.2 * i), gr = ctx.createRadialGradient(x, y, 0, x, y, rad);
+        gr.addColorStop(0, `rgba(${r},${g},${b},${0.55 * k + 0.1})`); gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      });
+      ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "glitter", name: "Paillettes", draw(ctx, base, W, H, t, k) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "lighter";
+      const n = Math.round(120 * (0.3 + k));
+      for (let i = 0; i < n; i++) {
+        const y = H * (1 - ((R(i, 1) + t * (0.15 + 0.25 * R(i, 2))) % 1)), x = W * R(i) + Math.sin(t * 4 + i) * W * 0.02;
+        const tw = 0.5 + 0.5 * Math.sin(t * 30 * (0.5 + R(i, 4)) + i), r = W * (0.006 + 0.03 * Math.pow(R(i, 3), 3));
+        ctx.globalAlpha = tw * 0.9; ctx.drawImage(i % 3 ? SPR.glow : SPR.warm, x - r * 2, y - r * 2, r * 4, r * 4);
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "vhs", name: "VHS",
+    pose: (t, k) => pose({ rgb: 3 + 5 * k, glitch: R(Math.floor(t * 12), 2) > 0.8 ? 0.4 * k : 0, vignette: 0.5 }),
+    draw(ctx, base, W, H, t, k, eng) {
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = "rgba(128,128,128,.3)"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = 0.25 + 0.2 * k;
+      const f = Math.floor(t * eng.seconds * 30);
+      ctx.save(); ctx.translate(-R(f) * 192, -R(f, 1) * 192); ctx.fillStyle = ctx.createPattern(grainTile, "repeat"); ctx.fillRect(0, 0, W + 192, H + 192); ctx.restore();
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+      const by = ((t * 0.8) % 1) * H, bh = H * 0.03;
+      ctx.drawImage(base, 0, by, W, bh, W * 0.02 * k, by, W, bh);
+      ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.fillRect(0, by, W, bh * 0.3);
+      const fs = Math.round(W / 20);
+      ctx.font = `600 ${fs}px "IBM Plex Mono", monospace`; ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 4;
+      ctx.fillText("PLAY ▶", fs, fs * 1.8);
+      const s = Math.floor(t * eng.seconds);
+      ctx.fillText(`SP 0:00:${String(s).padStart(2, "0")}`, fs, H - fs * 1.2);
+      ctx.shadowBlur = 0;
+  } },
+  { id: "film", name: "Pellicule 16 mm", pose: () => pose({ vignette: 0.6 }), draw(ctx, base, W, H, t, k, eng) {
+      const f = Math.floor(t * eng.seconds * 24);
+      ctx.drawImage(base, 0, 0);
+      ctx.globalCompositeOperation = "color"; ctx.fillStyle = `rgba(150,110,60,${0.25 + 0.3 * k})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = 0.35;
+      ctx.save(); ctx.translate(-R(f) * 192, -R(f, 1) * 192); ctx.fillStyle = ctx.createPattern(grainTile, "repeat"); ctx.fillRect(0, 0, W + 192, H + 192); ctx.restore();
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `rgba(${R(f, 2) > 0.5 ? "255,240,220" : "0,0,0"},${0.06 * R(f, 3) * (0.5 + k)})`; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "rgba(20,15,10,.7)";
+      for (let i = 0; i < 5; i++) if (R(f * 7 + i, 4) > 0.6) { const x = W * R(f * 7 + i, 5), y = H * R(f * 7 + i, 6); ctx.beginPath(); ctx.arc(x, y, W * 0.003 * (1 + 2 * R(i, f)), 0, Math.PI * 2); ctx.fill(); }
+      if (R(f, 8) > 0.7) { ctx.fillStyle = "rgba(240,230,210,.35)"; ctx.fillRect(W * R(f, 9), 0, Math.max(1, W / 500), H); }
+  } },
+  { id: "pixel", name: "Révélation pixel", draw(ctx, base, W, H, t, k, eng) {
+      const p = 1 - ease.out(win(t, 0.05, 0.85)), size = Math.max(1, Math.round(p * p * W / (6 + 10 * (1 - k))));
+      if (size <= 1) { ctx.drawImage(base, 0, 0); return; }
+      const sw = Math.ceil(W / size), sh = Math.ceil(H / size), c = eng.tmpCanvas(sw, sh);
+      c.getContext("2d").drawImage(base, 0, 0, sw, sh);
+      ctx.imageSmoothingEnabled = false; ctx.drawImage(c, 0, 0, sw, sh, 0, 0, sw * size, sh * size); ctx.imageSmoothingEnabled = true;
+  } },
+  { id: "bw-color", name: "N&B → Couleur", draw(ctx, base, W, H, t) {
+      ctx.drawImage(base, 0, 0);
+      const a = 1 - ease.inOut(win(t, 0.25, 0.8)); if (a <= 0) return;
+      ctx.globalCompositeOperation = "saturation"; ctx.fillStyle = `rgba(128,128,128,${a})`; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+  } },
+  { id: "kaleido", name: "Kaléidoscope", draw(ctx, base, W, H, t, k) {
+      const n = 6 + 2 * Math.round(k * 2), R0 = Math.hypot(W, H);
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < n; i++) {
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(i * Math.PI * 2 / n + t * 0.8); if (i % 2) ctx.scale(1, -1);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R0, -Math.PI / n - 0.01, Math.PI / n + 0.01); ctx.closePath(); ctx.clip();
+        ctx.rotate(-t * 1.6); ctx.drawImage(base, -R0, -R0, R0 * 2, R0 * 2); ctx.restore();
+      }
+  } },
+  { id: "glitch", name: "Glitch",
+    pose: (t, k) => { const b = Math.max(0, noise(t * 4, 11)) > 0.35 ? 1 : 0; return pose({ rgb: (2 + 14 * k) * (0.3 + b), glitch: b * (0.4 + 0.6 * k), x: b * 0.01 * noise(t * 30, 2) }); } },
+  { id: "strobe", name: "Paparazzi", pose: (t, k) => { const ph = (t * 10) % 1; return pose({ flash: ph < 0.12 && R(Math.floor(t * 10), 2) > 0.3 ? 0.5 + 0.4 * k : 0, vignette: 0.6 }); } },
+];
+const BOLTS = [0.12, 0.38, 0.47, 0.72];
+const moveById = (id) => MOVES.find((m) => m.id === id) || MOVES[0];
+const fxById = (id) => FXS.find((f) => f.id === id) || FXS[0];
+
+/* ───────────── Moteur de rendu ───────────── */
+function drawPose(g, img, W, H, p, alpha) {
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  const s = Math.max(p.s, 1 + 2 * Math.max(Math.abs(p.x), Math.abs(p.y)) + Math.abs(Math.sin(p.r)) * 0.6);
+  const c = Math.max(W / iw, H / ih) * s;
+  g.save(); g.globalAlpha = alpha; g.translate(W / 2 + p.x * W, H / 2 + p.y * H); g.rotate(p.r);
+  g.drawImage(img, -iw * c / 2, -ih * c / 2, iw * c, ih * c); g.restore();
+}
+class Engine {
+  constructor(canvas) {
+    this.canvas = canvas; this.ctx = canvas.getContext("2d", { willReadFrequently: false });
+    this.base = document.createElement("canvas"); this.bctx = this.base.getContext("2d", { willReadFrequently: true });
+    this.post = document.createElement("canvas"); this.pctx = this.post.getContext("2d");
+    this.chan = document.createElement("canvas"); this.cctx = this.chan.getContext("2d");
+    this.tmp = document.createElement("canvas"); this.seconds = 5;
+  }
+  tmpCanvas(w, h) { if (this.tmp.width !== w) this.tmp.width = w; if (this.tmp.height !== h) this.tmp.height = h; return this.tmp; }
+  size(W, H) { for (const c of [this.canvas, this.base, this.post, this.chan]) { if (c.width !== W) c.width = W; if (c.height !== H) c.height = H; } }
+  poseAt(move, fx, t, k) {
+    const a = move.pose(t, k), b = fx.pose ? fx.pose(t, k) : null;
+    if (!b) return a;
+    return { s: a.s * b.s, x: a.x + b.x, y: a.y + b.y, r: a.r + b.r, blur: a.blur + b.blur, rgb: a.rgb + b.rgb, flash: Math.max(a.flash, b.flash), mb: Math.max(a.mb, b.mb), glitch: Math.max(a.glitch, b.glitch), vignette: Math.max(a.vignette, b.vignette) };
+  }
+  frame(img, move, fx, t, k) {
+    this.size(this.canvas.width, this.canvas.height);
+    const { canvas, ctx, base, bctx } = this, W = canvas.width, H = canvas.height, u = W / 720;
+    const p = this.poseAt(move, fx, t, k);
+    bctx.clearRect(0, 0, W, H);
+    bctx.filter = p.blur > 0.2 ? `blur(${p.blur * u}px)` : "none";
+    const n = p.mb > 0.02 ? 7 : 1;
+    for (let i = 0; i < n; i++) {   // flou de bougé : moyenne glissante de poses passées
+      const ti = n === 1 ? t : Math.max(0, t - 0.06 * p.mb * (i / (n - 1)));
+      drawPose(bctx, img, W, H, i ? this.poseAt(move, fx, ti, k) : p, i ? 1 / (i + 1) : 1);
+    }
+    bctx.filter = "none";
+    ctx.clearRect(0, 0, W, H);
+    if (fx.draw) fx.draw(ctx, base, W, H, t, k, this); else ctx.drawImage(base, 0, 0);
+
+    if (p.rgb > 0.5) {               // aberration chromatique : canal rouge décalé
+      const d = p.rgb * u, { post, pctx, chan, cctx } = this;
+      pctx.globalCompositeOperation = "copy"; pctx.drawImage(canvas, 0, 0);
+      cctx.globalCompositeOperation = "copy"; cctx.drawImage(post, 0, 0);
+      cctx.globalCompositeOperation = "multiply"; cctx.fillStyle = "#f00"; cctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "#0ff"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter"; ctx.drawImage(chan, -d, 0);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    if (p.glitch > 0.05) {
+      const m = 3 + Math.floor(p.glitch * 8);
+      for (let i = 0; i < m; i++) {
+        const y = Math.floor((Math.sin(t * 91 + i * 17) + 1) / 2 * H), h = Math.max(2, Math.floor(H * 0.015 * (1 + (i * 7) % 5)));
+        ctx.drawImage(canvas, 0, y, W, h, Math.sin(t * 57 + i * 3) * W * 0.06 * p.glitch, y, W, h);
+      }
+    }
+    if (p.vignette > 0) {
+      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) / 2);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${p.vignette})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (p.flash > 0.01) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, p.flash)})`; ctx.fillRect(0, 0, W, H); }
+  }
+}
+
+/* ───────────── Image d'exemple (marquée comme telle) ───────────── */
+function sampleImage() {
+  const c = document.createElement("canvas"); c.width = 1080; c.height = 1350; const g = c.getContext("2d");
+  const sky = g.createLinearGradient(0, 0, 0, c.height);
+  sky.addColorStop(0, "#14204a"); sky.addColorStop(0.5, "#c8486e"); sky.addColorStop(0.8, "#ffa65a"); g.fillStyle = sky; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = "#ffe4a0"; g.beginPath(); g.arc(560, 760, 160, 0, Math.PI * 2); g.fill();
+  [["#5a2f6a", 900, 0.004], ["#38204f", 990, 0.006], ["#1a1030", 1100, 0.009]].forEach(([col, b, f], i) => {
+    g.fillStyle = col; g.beginPath(); g.moveTo(0, c.height);
+    for (let x = 0; x <= c.width; x += 10) g.lineTo(x, b - 90 * Math.sin(x * f + i * 2) - 40 * Math.sin(x * f * 3.1));
+    g.lineTo(c.width, c.height); g.fill();
+  });
+  g.fillStyle = "#0a0614"; g.beginPath(); g.arc(540, 960, 50, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(462, 1350); g.quadraticCurveTo(462, 1030, 540, 1015); g.quadraticCurveTo(618, 1030, 618, 1350); g.fill();
+  g.font = "600 34px 'IBM Plex Mono', monospace"; g.fillStyle = "rgba(255,255,255,.75)"; g.textAlign = "center"; g.fillText("IMAGE D'EXEMPLE", 540, 90);
+  return c;
+}
+
+/* ───────────── État et interface ───────────── */
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const SIZES = { "9:16": [720, 1280], "1:1": [1080, 1080], "16:9": [1280, 720] };
+const state = { img: sampleImage(), move: store.get("fx.move", "crash-in"), fx: store.get("fx.fx", "none"), aspect: store.get("fx.aspect", "9:16"), k: 0.7, seconds: 5, recording: false };
+if (!SIZES[state.aspect]) state.aspect = "9:16";
+
+const eng = new Engine($("#preview"));
+const thumbs = [];
+
+function buildGrid(el, list, kind) {
+  el.innerHTML = "";
+  for (const item of list) {
+    const b = document.createElement("button");
+    b.className = "card"; b.dataset.id = item.id; b.setAttribute("aria-pressed", "false");
+    const cv = document.createElement("canvas"); cv.width = 150; cv.height = 188; b.append(cv);
+    const lab = document.createElement("span"); lab.className = "label"; lab.textContent = item.name; b.append(lab);
+    const th = { kind, id: item.id, e: new Engine(cv), raf: 0 }; thumbs.push(th);
+    b.addEventListener("click", () => { state[kind] = item.id; store.set("fx." + kind, item.id); syncSelection(); restartPreview(); });
+    b.addEventListener("mouseenter", () => animThumb(th));
+    b.addEventListener("mouseleave", () => stillThumb(th));
+    b.addEventListener("focus", () => animThumb(th));
+    b.addEventListener("blur", () => stillThumb(th));
+    el.append(b);
+  }
+}
+const thumbPair = (th) => th.kind === "move" ? [moveById(th.id), FXS[0]] : [moveById("fixe"), fxById(th.id)];
+function stillThumb(th) { cancelAnimationFrame(th.raf); const [m, f] = thumbPair(th); th.e.seconds = 3; th.e.frame(state.img, m, f, 0.62, state.k); }
+function animThumb(th) {
+  cancelAnimationFrame(th.raf); const [m, f] = thumbPair(th), t0 = performance.now();
+  const loop = () => { th.e.frame(state.img, m, f, ((performance.now() - t0) % 2600) / 2600, state.k); th.raf = requestAnimationFrame(loop); };
+  loop();
+}
+const redrawThumbs = () => thumbs.forEach(stillThumb);
+
+function syncSelection() {
+  document.querySelectorAll("#moves .card").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === state.move)));
+  document.querySelectorAll("#fxs .card").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === state.fx)));
+  const m = moveById(state.move), f = fxById(state.fx);
+  $("#moveName").textContent = m.name; $("#fxName").textContent = f.name;
+  $("#combo").innerHTML = "";
+  $("#combo").append(f.id === "none" ? m.name : m.id === "fixe" ? f.name : `${m.name} + ${f.name}`);
+  const sm = document.createElement("small"); sm.textContent = `${state.seconds} s · ${state.aspect} · intensité ${Math.round(state.k * 100)} %`; $("#combo").append(sm);
+}
+
+function setAspect(ar) {
+  state.aspect = ar; store.set("fx.aspect", ar);
+  document.querySelectorAll("#aspect button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ar === ar)));
+  eng.size(...SIZES[ar]); fit(); syncSelection();
+  $("#fmt").textContent = `${SIZES[ar][0]} × ${SIZES[ar][1]} · 30 i/s`;
+}
+function fit() {
+  const box = $("#screen").getBoundingClientRect(), [W, H] = SIZES[state.aspect];
+  const sc = Math.max(0.05, Math.min((box.width - 20) / W, (box.height - 20) / H));
+  for (const el of [$("#preview"), $("#result")]) { el.style.width = W * sc + "px"; el.style.height = H * sc + "px"; }
+}
+new ResizeObserver(fit).observe($("#screen"));
+
+const tcode = (sec) => { const f = Math.floor((sec % 1) * 30), s = Math.floor(sec); return `00:00:${String(s).padStart(2, "0")}:${String(f).padStart(2, "0")}`; };
+let raf = 0, t0 = performance.now();
+function restartPreview() {
+  if (state.recording) return;
+  $("#result").hidden = true; $("#result").pause(); $("#preview").hidden = false; $("#back").hidden = true;
+  cancelAnimationFrame(raf); t0 = performance.now(); eng.seconds = state.seconds;
+  const loop = () => {
+    const len = state.seconds * 1000, el = (performance.now() - t0) % (len + 500), t = Math.min(1, el / len);
+    eng.frame(state.img, moveById(state.move), fxById(state.fx), t, state.k);
+    $("#tc").textContent = tcode(t * state.seconds);
+    raf = requestAnimationFrame(loop);
+  };
+  loop();
+}
+$("#back").addEventListener("click", restartPreview);
+
+$("#aspect").addEventListener("click", (e) => { const b = e.target.closest("[data-ar]"); if (b && !state.recording) { setAspect(b.dataset.ar); restartPreview(); } });
+$("#k").addEventListener("input", (e) => { state.k = e.target.value / 100; $("#kVal").textContent = e.target.value + " %"; syncSelection(); redrawThumbs(); });
+$("#dur").addEventListener("input", (e) => { state.seconds = +e.target.value; $("#durVal").textContent = e.target.value + " s"; syncSelection(); restartPreview(); });
+
+/* Photo */
+function loadFile(file) {
+  if (!file || !file.type.startsWith("image/")) return toast("Ce fichier n'est pas une image. Choisissez un JPG, PNG ou WebP.", true);
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    state.img = img; $("#thumb").src = url; $("#thumb").hidden = false;
+    $("#dropText").innerHTML = "<strong>Changer de photo</strong>"; redrawThumbs(); restartPreview();
+  };
+  img.onerror = () => toast("Impossible de lire cette image. Essayez un autre fichier.", true);
+  img.src = url;
+}
+const drop = $("#drop");
+$("#file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+window.addEventListener("paste", (e) => { const it = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/")); if (it) loadFile(it.getAsFile()); });
+
+/* Export vidéo */
+let downloads = null;
+window.claude?.use?.("downloads").then((d) => (downloads = d)).catch(() => {});
+
+async function saveVideo(blob, name) {
+  if (downloads) {
+    try { await downloads.save({ filename: name, data: blob }); toast("Vidéo enregistrée."); }
+    catch (e) { if (e?.code !== "declined") toast("L'enregistrement du fichier a échoué. Réessayez.", true); }
+    return;
+  }
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a); a.click(); a.remove(); toast("Vidéo téléchargée.");
+}
+
+$("#export").addEventListener("click", async () => {
+  const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+  if (!mime) return toast("Ce navigateur ne sait pas enregistrer de vidéo. Essayez Chrome, Edge ou Safari récent.", true);
+  const q = +$("#quality").value, [W0, H0] = SIZES[state.aspect], W = Math.round(W0 * q / 2) * 2, H = Math.round(H0 * q / 2) * 2;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const rec = new Engine(cv); rec.seconds = state.seconds;
+  const m = moveById(state.move), f = fxById(state.fx), k = state.k, secs = state.seconds;
+  rec.frame(state.img, m, f, 0, k);
+
+  state.recording = true; cancelAnimationFrame(raf);
+  const btn = $("#export"), bar = $("#bar"); btn.disabled = true; bar.hidden = false;
+  $("#preview").hidden = true; $("#result").hidden = true;
+  cv.style.cssText = $("#preview").style.cssText; $("#screen").append(cv);
+
+  try {
+    const stream = cv.captureStream(30), mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10_000_000 }), chunks = [];
+    mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const stopped = new Promise((r) => (mr.onstop = r));
+    mr.start(250);
+    const s0 = performance.now();
+    await new Promise((res) => {
+      const tick = () => {
+        const t = Math.min(1, (performance.now() - s0) / (secs * 1000));
+        rec.frame(state.img, m, f, t, k);
+        bar.firstElementChild.style.width = t * 100 + "%";
+        $("#tc").innerHTML = `<span class="rec">● REC</span> ${tcode(t * secs)}`;
+        btn.lastChild.textContent = ` Enregistrement… ${Math.round(t * 100)} %`;
+        t < 1 ? requestAnimationFrame(tick) : res();
+      };
+      requestAnimationFrame(tick);
+    });
+    mr.stop(); await stopped;
+    const type = mime.split(";")[0], ext = type === "video/mp4" ? "mp4" : "webm", blob = new Blob(chunks, { type });
+    cv.remove();
+    const v = $("#result"); v.src = URL.createObjectURL(blob); v.hidden = false; v.play().catch(() => {});
+    $("#back").hidden = false;
+    state.recording = false;
+    await saveVideo(blob, `studio-fx-${m.id}${f.id !== "none" ? "-" + f.id : ""}.${ext}`);
+  } catch (e) {
+    cv.remove(); toast("L'enregistrement a échoué : " + e.message, true); state.recording = false; restartPreview();
+  } finally {
+    state.recording = false; btn.disabled = false; bar.hidden = true; btn.lastChild.textContent = " Enregistrer la vidéo";
+    $("#tc").textContent = tcode(0);
+  }
+});
+
+let tt;
+function toast(msg, err) { const el = $("#toast"); el.textContent = msg; el.className = "toast" + (err ? " err" : ""); el.hidden = false; clearTimeout(tt); tt = setTimeout(() => (el.hidden = true), err ? 6000 : 3000); }
+
+/* Démarrage */
+buildGrid($("#moves"), MOVES, "move");
+buildGrid($("#fxs"), FXS, "fx");
+setAspect(state.aspect);
+syncSelection();
+redrawThumbs();
+restartPreview();
+document.fonts?.ready.then(redrawThumbs);
+</script>
+</body>
+</html>
